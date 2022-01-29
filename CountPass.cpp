@@ -1,4 +1,3 @@
-#include <fstream>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Pass.h>
@@ -53,7 +52,7 @@ struct CountPass : public llvm::FunctionPass {
   virtual bool doFinalization(llvm::Module &module) {
     llvm::errs() << "The program has a total of " << functionsCount
                  << " functions and " << basicBlocksCount << " basic blocks.\n";
-    llvm::errs() << "Basic blocks by instructions count statistics:\n";
+    llvm::errs() << "Basic blocks by instruction count statistics:\n";
     for (auto const &x : instructionCountsHistogram) {
       llvm::errs() << x.first << ": " << x.second << "\n";
     }
@@ -68,21 +67,32 @@ struct CountPass : public llvm::FunctionPass {
     llvm::errs() << "Gnuplot presence detected, rendering histogram to "
                  << outputFilename << "\n";
 
-    // Save histogram data to temporary file
-    char tmpFilename[] = "/tmp/SimplePassDataXXXXXX";
+    // Create and open temporary file
+    char tmpFilename[] = "/tmp/CountPassDataXXXXXX";
     int fd = mkstemp(tmpFilename);
     if (fd < 0) {
       llvm::errs() << "Failed to create temporarory file, exiting...";
+      return false;
     }
-    close(fd);
-    std::ofstream tmpFile(tmpFilename);
-    if (!tmpFile.is_open()) {
+    // Create FILE* wrapper over the file descriptor
+    FILE *tmpFile = fdopen(fd, "w");
+    if (tmpFile == nullptr) {
+      close(fd);
       llvm::errs() << "Failed to open temporarory file, exiting...";
+      return false;
     }
+
+    // Save histogram data to temporary file
+    std::stringstream dataStream;
     for (auto const &x : instructionCountsHistogram) {
-      tmpFile << x.first << " " << x.second << "\n";
+      dataStream << x.first << " " << x.second << "\n";
     }
-    tmpFile.close();
+    std::string data = dataStream.str();
+    if (fputs(data.c_str(), tmpFile) < 0) {
+      llvm::errs() << "Failed to write data to temporary file, exiting...";
+      return false;
+    }
+    fclose(tmpFile);
 
     // Create a string with gnuplot source using string stream
     std::stringstream sourceStream;
