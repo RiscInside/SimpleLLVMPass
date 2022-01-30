@@ -97,7 +97,7 @@ struct CountPass : public llvm::FunctionPass {
     // Create a string with gnuplot source using string stream
     std::stringstream sourceStream;
 
-    // gnuplot code for the Histogram
+    // Gnuplot code for the histogram
     sourceStream << "set terminal pdf\n";
     sourceStream << "set output \'" << outputFilename << "\'\n";
     sourceStream << "set style data histograms\n";
@@ -107,6 +107,7 @@ struct CountPass : public llvm::FunctionPass {
     sourceStream << "plot \'" << tmpFilename
                  << "\' using 2:xtic(1) title \'Basic blocks by instruction "
                     "count\' linecolor \'black\'\n";
+    sourceStream << "quit";
 
     // Send code over to gnuplot
     std::string source = sourceStream.str();
